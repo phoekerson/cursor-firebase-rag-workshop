@@ -3,7 +3,7 @@ import { connectDataConnectEmulator, getDataConnect } from 'firebase/data-connec
 import { connectorConfig } from '@dataconnect/generated';
 
 initializeApp({
-  apiKey: 'AIzaSyBnAiZcpvRx3eiqQrQDYgZaoJXRgdvY4x4',
+  apiKey: process.env.GEMINI_API_KEY,
   authDomain: 'fir-demo-e74da.firebaseapp.com',
   projectId: 'fir-demo-e74da',
   storageBucket: 'fir-demo-e74da.firebasestorage.app',
