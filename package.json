@@ -3,6 +3,7 @@
     "start": "tsx src/index.ts --compare",
     "start:rag": "tsx src/index.ts --rag",
     "start:no-rag": "tsx src/index.ts --no-rag",
+    "ask": "tsx src/index.ts --rag --ask-only",
     "dev:ui": "tsx src/server.ts",
     "genkit": "genkit start -o --non-interactive -- tsx --watch src/genkit.ts",
     "genkit:stop": "genkit ui:stop --non-interactive",

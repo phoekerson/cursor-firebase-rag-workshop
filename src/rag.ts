@@ -86,18 +86,30 @@ export async function addDocument(title: string, content: string) {
   });
 }
 
+const DEMO_DOCUMENTS = [
+  {
+    title: 'Politique Transport',
+    content: "L'entreprise prend en charge 100% de votre abonnement Gozem ou de vos frais de métro.",
+  },
+  {
+    title: 'Pause Déjeuner',
+    content: "Tous les jours à 16h, c'est la pause déjeuner obligatoire dans la cuisine.",
+  },
+  {
+    title: 'Grille de salare',
+    content: '1000€ - 1500€ Post Junior, 1500€ - 2000€ Post Senior, 2000€ - 2500€ Post Expert',
+  },
+];
+
 export async function seedDemoDocuments() {
   const existing = await getDocuments();
-  if (existing.length > 0) return existing;
+  const existingTitles = new Set(existing.map((doc) => doc.title));
 
-  await addDocument(
-    'Politique Transport',
-    "L'entreprise prend en charge 100% de votre abonnement Navigo ou de vos frais de vélib."
-  );
-  await addDocument(
-    'Pause Fika',
-    "Tous les jours à 16h, c'est la pause café obligatoire dans la cuisine."
-  );
+  for (const doc of DEMO_DOCUMENTS) {
+    if (existingTitles.has(doc.title)) continue;
+    await addDocument(doc.title, doc.content);
+    console.log(`✅ Document ajouté : "${doc.title}"`);
+  }
 
   return getDocuments();
 }

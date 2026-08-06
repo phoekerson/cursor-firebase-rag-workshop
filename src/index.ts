@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import './firebase';
-import { addDocument, askQuestion, isRagEnabledFromEnv, parseDemoMode } from './rag';
+import { addDocument, askQuestion, isRagEnabledFromEnv, parseDemoMode, seedDemoDocuments } from './rag';
 
 function printAnswer(label: string, result: Awaited<ReturnType<typeof askQuestion>>) {
   console.log(`\n${label}`);
@@ -17,22 +17,32 @@ function printAnswer(label: string, result: Awaited<ReturnType<typeof askQuestio
   console.log(result.answer);
 }
 
-async function main() {
-  const demoMode = parseDemoMode(process.argv.slice(2));
-  const defaultRagEnabled = isRagEnabledFromEnv();
-  const question =
-    process.env.DEMO_QUESTION ??
-    "Comment la boîte m'aide pour aller au travail ?";
+function parseQuestion(args: string[]): string {
+  const questionIndex = args.indexOf('--question');
+  if (questionIndex !== -1 && args[questionIndex + 1]) {
+    return args[questionIndex + 1];
+  }
+  return process.env.DEMO_QUESTION ?? "Quel est le salaire d'un poste Senior ?";
+}
 
-  console.log('--- 1. INGESTION DES DONNÉES ---');
-  await addDocument(
-    'Politique Transport',
-    "L'entreprise prend en charge 100% de votre abonnement Navigo ou de vos frais de vélib."
-  );
-  await addDocument(
-    'Pause Fika',
-    "Tous les jours à 16h, c'est la pause café obligatoire dans la cuisine."
-  );
+function shouldSkipIngest(args: string[]): boolean {
+  return args.includes('--ask-only');
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const demoMode = parseDemoMode(args);
+  const defaultRagEnabled = isRagEnabledFromEnv();
+  const question = parseQuestion(args);
+
+  if (!shouldSkipIngest(args)) {
+    console.log('--- 1. INGESTION DES DONNÉES ---');
+    const documents = await seedDemoDocuments();
+    console.log(`✅ ${documents.length} document(s) disponible(s) :`);
+    documents.forEach((doc) => console.log(`   • ${doc.title}`));
+  } else {
+    console.log('--- 1. INGESTION IGNORÉE (--ask-only) ---');
+  }
 
   console.log('\n--- 2. DÉMONSTRATION ---');
   console.log(`Question : "${question}"`);
