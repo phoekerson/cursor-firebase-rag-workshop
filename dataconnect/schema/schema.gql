@@ -1,0 +1,7 @@
+type Document @table {
+  id: UUID! @default(expr: "uuidV4()")
+  title: String!
+  content: String!
+  # 768 dimensions = taille exacte des vecteurs pour Gemini text-embedding-004
+  contentEmbedding: Vector! @col(size: 768)
+}

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistant RH — RAG Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.4rem; }
+    h2 { margin: 0 0 12px; font-size: 1rem; color: #94a3b8; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #334155;
+      margin-bottom: 12px;
+    }
+    .badge.emulator { background: #854d0e; color: #fef08a; }
+    .badge.production { background: #14532d; color: #bbf7d0; }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #e2e8f0;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-ghost { background: transparent; border: 1px solid #475569; color: #e2e8f0; }
+    .toggle-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 12px 0;
+    }
+    .doc-item {
+      padding: 10px;
+      border-radius: 8px;
+      background: #0f172a;
+      margin-bottom: 8px;
+      border: 1px solid #334155;
+    }
+    .doc-item strong { display: block; margin-bottom: 4px; }
+    .doc-item p { margin: 0; font-size: 0.85rem; color: #94a3b8; }
+    .chat {
+      display: flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+      max-height: 420px;
+    }
+    .msg {
+      padding: 12px 14px;
+      border-radius: 12px;
+      max-width: 90%;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    .msg.user { align-self: flex-end; background: #2563eb; }
+    .msg.bot { align-self: flex-start; background: #334155; }
+    .msg.meta { align-self: center; background: transparent; border: 1px dashed #475569; color: #94a3b8; font-size: 0.85rem; max-width: 100%; }
+    .sources { font-size: 0.8rem; color: #94a3b8; margin-top: 8px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hint { font-size: 0.8rem; color: #64748b; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="card">
+        <h1>Assistant RH</h1>
+        <span id="modeBadge" class="badge emulator">Émulateur local</span>
+        <p class="hint">Les données restent sur ta machine tant que tu n’as pas déployé en production.</p>
+
+        <h2>Documents ingérés</h2>
+        <div id="docList"></div>
+        <div class="row">
+          <button class="btn-secondary" onclick="seedDocs()">Charger la démo</button>
+          <button class="btn-ghost" onclick="loadDocs()">Actualiser</button>
+        </div>
+
+        <h2 style="margin-top: 20px;">Ajouter un document</h2>
+        <label>Titre</label>
+        <input id="docTitle" placeholder="Ex: Congés payés" />
+        <label>Contenu</label>
+        <textarea id="docContent" rows="4" placeholder="Texte du document RH..."></textarea>
+        <button class="btn-primary" onclick="addDoc()">Ajouter</button>
+      </div>
+    </aside>
+
+    <main class="card chat">
+      <h2>Chat</h2>
+      <div class="toggle-row">
+        <label><input type="checkbox" id="ragToggle" checked /> RAG activé</label>
+        <label><input type="checkbox" id="compareToggle" /> Comparer avec / sans RAG</label>
+      </div>
+      <div id="messages" class="messages"></div>
+      <label>Question</label>
+      <textarea id="question" rows="3" placeholder="Comment la boîte m'aide pour aller au travail ?"></textarea>
+      <div class="row">
+        <button class="btn-primary" onclick="sendQuestion()">Envoyer</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const messages = document.getElementById('messages');
+    const modeBadge = document.getElementById('modeBadge');
+
+    function addMessage(text, type = 'bot', extra = '') {
+      const el = document.createElement('div');
+      el.className = `msg ${type}`;
+      el.textContent = text;
+      if (extra) {
+        const src = document.createElement('div');
+        src.className = 'sources';
+        src.textContent = extra;
+        el.appendChild(src);
+      }
+      messages.appendChild(el);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function loadHealth() {
+      const res = await fetch('/api/health');
+      const data = await res.json();
+      if (data.dataConnectMode === 'production') {
+        modeBadge.textContent = 'Production Cloud SQL';
+        modeBadge.className = 'badge production';
+      }
+    }
+
+    async function loadDocs() {
+      const res = await fetch('/api/documents');
+      const data = await res.json();
+      const list = document.getElementById('docList');
+      list.innerHTML = '';
+      if (!data.documents?.length) {
+        list.innerHTML = '<p class="hint">Aucun document. Clique sur « Charger la démo ».</p>';
+        return;
+      }
+      for (const doc of data.documents) {
+        const item = document.createElement('div');
+        item.className = 'doc-item';
+        item.innerHTML = `<strong>${doc.title}</strong><p>${doc.content}</p>`;
+        list.appendChild(item);
+      }
+    }
+
+    async function seedDocs() {
+      await fetch('/api/seed', { method: 'POST' });
+      await loadDocs();
+    }
+
+    async function addDoc() {
+      const title = document.getElementById('docTitle').value;
+      const content = document.getElementById('docContent').value;
+      if (!title || !content) return alert('Titre et contenu requis');
+      await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content }),
+      });
+      document.getElementById('docTitle').value = '';
+      document.getElementById('docContent').value = '';
+      await loadDocs();
+    }
+
+    async function sendQuestion() {
+      const question = document.getElementById('question').value.trim();
+      if (!question) return;
+      const ragEnabled = document.getElementById('ragToggle').checked;
+      const compare = document.getElementById('compareToggle').checked;
+
+      addMessage(question, 'user');
+      document.getElementById('question').value = '';
+
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, ragEnabled, compare }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        addMessage('Erreur : ' + data.error, 'meta');
+        return;
+      }
+
+      if (compare) {
+        addMessage('Sans RAG :\n' + data.withoutRag.answer, 'bot');
+        const sources = data.withRag.sources?.map(s => s.title).join(', ') || 'aucune';
+        addMessage('Avec RAG :\n' + data.withRag.answer, 'bot', 'Sources : ' + sources);
+        return;
+      }
+
+      const sources = data.sources?.map(s => s.title).join(', ') || '';
+      addMessage(data.answer, 'bot', data.ragEnabled && sources ? 'Sources : ' + sources : '');
+    }
+
+    loadHealth();
+    loadDocs();
+  </script>
+</body>
+</html>

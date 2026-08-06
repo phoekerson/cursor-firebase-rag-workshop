@@ -1,0 +1,10 @@
+---
+description: Règles de développement Firebase Data Connect & RAG
+globs: **/*.ts, **/*.gql
+---
+# Directives Firebase & GraphQL
+- Utilise la syntaxe modulaire Firebase Web SDK v11.
+- Pour Firebase Data Connect, importe les fonctions depuis `@firebase/gen`.
+- Pour la vectorisation et le RAG, utilise l'API Gemini (`@google/genai`).---
+alwaysApply: true
+---

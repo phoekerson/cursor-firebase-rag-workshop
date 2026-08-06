@@ -1,0 +1,27 @@
+{
+  "scripts": {
+    "start": "tsx src/index.ts --compare",
+    "start:rag": "tsx src/index.ts --rag",
+    "start:no-rag": "tsx src/index.ts --no-rag",
+    "dev:ui": "tsx src/server.ts",
+    "genkit": "genkit start -o --non-interactive -- tsx --watch src/genkit.ts",
+    "genkit:stop": "genkit ui:stop --non-interactive",
+    "emulators": "firebase emulators:start --only dataconnect"
+  },
+  "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
+    "@genkit-ai/google-genai": "^1.40.1",
+    "@google/genai": "^2.16.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "firebase": "^12.17.1",
+    "genkit": "^1.40.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^26.1.2",
+    "genkit-cli": "^1.40.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

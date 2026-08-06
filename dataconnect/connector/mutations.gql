@@ -1,0 +1,6 @@
+mutation CreateDocument($title: String!, $content: String!, $contentEmbedding: String!) @auth(level: PUBLIC) {
+  rowsInserted: _execute(
+    sql: "INSERT INTO document (title, content, content_embedding) VALUES ($1, $2, $3::vector)",
+    params: [$title, $content, $contentEmbedding]
+  )
+}

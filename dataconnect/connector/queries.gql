@@ -1,0 +1,12 @@
+query ListDocuments @auth(level: PUBLIC) {
+  documents: _select(
+    sql: "SELECT id, title, content FROM document ORDER BY title ASC"
+  )
+}
+
+query SearchSimilarDocuments($queryEmbedding: String!, $limit: Int = 3) @auth(level: PUBLIC) {
+  documents: _select(
+    sql: "SELECT id, title, content FROM document ORDER BY content_embedding <=> $1::vector LIMIT $2",
+    params: [$queryEmbedding, $limit]
+  )
+}
